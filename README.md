@@ -136,6 +136,17 @@ If you had the previous version with IndexedDB:
 
 ## 🐛 Troubleshooting
 
+### Common Issues
+- **Firebase Configuration Error**: Verify that your `.env` file (local) or your hosting platform's environment variables are correctly configured. Ensure your Firebase Authentication and Firestore services are enabled in the [Firebase Console](https://console.firebase.google.com/).
+- **Port Already in Use**: If you see an `EADDRINUSE` error when running `npm run dev`, it means another instance of the project is already running. Close other terminal windows or press `Ctrl + C` in the running terminal to stop it.
+- **Node.js Version**: Ensure you are using **Node.js version 16 or higher**. You can check your version by running `node -v` in your terminal.
+- **Authentication Issues**: If login fails, verify that Email/Password authentication is enabled in your Firebase project and that your `VITE_FIREBASE_API_KEY` is correct.
+
+### Data Not Saving
+- Check your browser's Developer Tools Console (F12) for specific error messages.
+- Verify that your Firestore security rules allow the necessary read/write operations.
+- Ensure the user is successfully authenticated before attempting to save data.
+
 ### Firebase Configuration Error
 - Verify that `.env` (local) or Netlify environment variables (production) are correctly configured
 - Ensure Authentication is enabled
