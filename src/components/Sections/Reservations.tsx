@@ -144,7 +144,8 @@ export const Reservations: React.FC<ReservationsProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>git add src/components/reservations/Reservations.tsx
+      
       
       {/* ... (Rest of your original code structure) ... */}
       <div className="flex justify-center mb-8">
