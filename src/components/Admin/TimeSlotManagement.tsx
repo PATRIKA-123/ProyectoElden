@@ -26,6 +26,7 @@ export const TimeSlotManagement: React.FC = () => {
   const { timeSlots, fields, addTimeSlot, updateTimeSlot, deleteTimeSlot } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState<TimeSlotFormData>({
     fieldId: '',
     date: '',
@@ -37,8 +38,49 @@ export const TimeSlotManagement: React.FC = () => {
     isAvailable: true
   });
 
+  const validateTimeSlot = (data: TimeSlotFormData): string | null => {
+    if (!data.fieldId) {
+      return 'Debes seleccionar una cancha.';
+    }
+    if (!data.startTime || !data.endTime) {
+      return 'Debes indicar hora de inicio y hora de fin.';
+    }
+    if (data.startTime >= data.endTime) {
+      return 'La hora de fin debe ser posterior a la hora de inicio.';
+    }
+    if (data.price < 0) {
+      return 'El precio no puede ser negativo.';
+    }
+
+    const overlaps = timeSlots.some((slot) => {
+      if (slot.fieldId !== data.fieldId) return false;
+      if (editingSlot && slot.id === editingSlot.id) return false;
+
+      const sameScope = data.allDays
+        ? (slot as any).allDays
+        : (slot as any).date === data.date;
+      if (!sameScope) return false;
+
+      return data.startTime < slot.endTime && slot.startTime < data.endTime;
+    });
+
+    if (overlaps) {
+      return 'Ya existe un horario que se superpone con este rango para la cancha seleccionada.';
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const error = validateTimeSlot(formData);
+    if (error) {
+      setFormError(error);
+      return;
+    }
+    setFormError(null);
+
     const dataToSave = { ...formData };
     if (formData.allDays) {
       dataToSave.date = '';
@@ -81,6 +123,7 @@ export const TimeSlotManagement: React.FC = () => {
       isActive: slotExt.isActive,
       isAvailable: slotExt.isAvailable
     });
+    setFormError(null);
     setShowForm(true);
   };
 
@@ -112,6 +155,7 @@ export const TimeSlotManagement: React.FC = () => {
         <button
           onClick={() => {
             setEditingSlot(null);
+            setFormError(null);
             setFormData({
               fieldId: '',
               date: '',
@@ -136,6 +180,13 @@ export const TimeSlotManagement: React.FC = () => {
           <h3 className="text-lg font-semibold mb-4">
             {editingSlot ? 'Editar Horario' : 'Nuevo Horario'}
           </h3>
+
+          {formError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {formError}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -249,6 +300,7 @@ export const TimeSlotManagement: React.FC = () => {
                 onClick={() => {
                   setShowForm(false);
                   setEditingSlot(null);
+                  setFormError(null);
                 }}
                 className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
               >
@@ -345,4 +397,4 @@ export const TimeSlotManagement: React.FC = () => {
       )}
     </div>
   );
-}; 
+};
