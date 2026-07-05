@@ -38,6 +38,14 @@ export const Sidebar: React.FC<SidebarProps & { onClose?: () => void }> = ({ act
     filteredMenuItems = menuItems.filter(item => item.id !== 'reportes');
   }
 
+  // ADDED: handles nav clicks — changes section, and closes the mobile sidebar if open
+  const handleItemClick = (id: string) => {
+    onSectionChange(id);
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <div className="h-screen p-4 flex flex-col w-64 bg-gray-900/95 backdrop-blur-sm relative overflow-y-auto">
       {/* Botón de cerrar solo en móvil */}
@@ -69,7 +77,8 @@ export const Sidebar: React.FC<SidebarProps & { onClose?: () => void }> = ({ act
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => onSectionChange(item.id)}
+                  onClick={() => handleItemClick(item.id)}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 text-sm sm:text-base ${
                     isActive
                       ? 'bg-green-500 text-white shadow-lg'
