@@ -1,25 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import { User, Mail, Phone, Calendar, Edit2, Save, X } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Edit2, Save, X, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 
 export const Profile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { reservations } = useData();
+
   const registrationDate = user?.createdAt?.toDate
-  ? user.createdAt.toDate()
-  : user?.createdAt
-  ? new Date(user.createdAt)
-  : null;
+    ? user.createdAt.toDate()
+    : user?.createdAt
+    ? new Date(user.createdAt)
+    : null;
 
-const formattedRegistration = registrationDate
-  ? registrationDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
-  : null;
+  const formattedRegistration = registrationDate
+    ? registrationDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
+    : null;
 
-const formattedFullDate = registrationDate
-  ? registrationDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
-  : null;
+  const formattedFullDate = registrationDate
+    ? registrationDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -61,9 +66,49 @@ const formattedFullDate = registrationDate
     };
   }, [reservations, user]);
 
-  const handleSave = () => {
-    // Here you would typically make an API call to update the user profile
-    setIsEditing(false);
+  const validateForm = (): string | null => {
+    if (!formData.name.trim()) {
+      return 'El nombre no puede estar vacío';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return 'Introduce un correo electrónico válido';
+    }
+    if (formData.phone && !/^[\d\s+()-]{6,20}$/.test(formData.phone)) {
+      return 'Introduce un número de teléfono válido';
+    }
+    return null;
+  };
+
+  const handleSave = async () => {
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    setIsSaving(true);
+
+    try {
+      if (typeof updateProfile !== 'function') {
+        throw new Error(
+          'updateProfile no está disponible en AuthContext. Añade esta función al contexto de autenticación.'
+        );
+      }
+      await updateProfile(formData);
+      setIsEditing(false);
+      setSuccessMessage('Perfil actualizado correctamente');
+      // Clear success message after a few seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'No se pudo guardar el perfil. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -72,6 +117,7 @@ const formattedFullDate = registrationDate
       email: user?.email || '',
       phone: user?.phone || '',
     });
+    setError(null);
     setIsEditing(false);
   };
 
@@ -79,138 +125,5 @@ const formattedFullDate = registrationDate
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-4xl font-bold text-white mb-8">Perfil de Usuario</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center">
-          <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-12 h-12 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">{user?.name}</h2>
-          <p className="text-green-300 mb-4">Usuario Activo</p>
-          <div className="bg-green-500/20 text-green-300 px-4 py-2 rounded-lg text-sm">
-            {formattedRegistration ? `Miembro desde ${formattedRegistration}` : 'Fecha no disponible'}
-          </div>
-        </div>
-
-        <div className="lg:col-span-2 bg-white/10 backdrop-blur-sm rounded-xl p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-white">Información Personal</h3>
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-                Editar
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  Guardar
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                  Cancelar
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <User className="w-5 h-5 text-green-400" />
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Nombre Completo
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                ) : (
-                  <p className="text-white text-lg">{user?.name}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Mail className="w-5 h-5 text-green-400" />
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Correo Electrónico
-                </label>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                ) : (
-                  <p className="text-white text-lg">{user?.email}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Phone className="w-5 h-5 text-green-400" />
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Teléfono
-                </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                ) : (
-                  <p className="text-white text-lg">{user?.phone}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Calendar className="w-5 h-5 text-green-400" />
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Fecha de Registro
-                </label>
-                <p className="text-white text-lg">{formattedFullDate || 'Fecha no disponible'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-8">
-        <h3 className="text-2xl font-bold text-white mb-6">Estadísticas de Reservas</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-400 mb-2">{stats.total}</div>
-            <p className="text-gray-300">Reservas Totales</p>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-400 mb-2">{stats.month}</div>
-            <p className="text-gray-300">Reservas Este Mes</p>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.favorite}</div>
-            <p className="text-gray-300">Deporte Favorito</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+      {successMessage && (
+        <div className="mb-6
